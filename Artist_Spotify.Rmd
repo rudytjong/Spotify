@@ -5,13 +5,76 @@ date: "2025-05-28"
 output: html_document
 ---
 
+#Load libraries
+
 library(igraph)
+library(tidyverse)
+library(ggraph)
+library(tidygraph)
 
-#Set up Data
+#Load and clean the data
 
-```{r Load data, ECHO = FALSE}
+df <- read_csv("edges.csv")
+glimpse (df)
 
-edges <- read.csv("edges.csv", header = TRUE)
-nodes <- read.csv('nodes.csv, header = TRUE)
+df_clean <- df %>% filter(!is.na(artis_name), 
+!is.na(collaborator_name))
 
-ls(edges)
+head(df_clean)
+
+#Build the Network Graph
+
+# Create edge list
+edges <- df_clean %>%
+select(from = artist_name, to = collaborator_name)
+
+# Create graph
+g <- graph_from_data_frame(edges, directed = FALSE)
+
+# Simplify to remove loops and multiple edges
+g <- simplify(g)
+
+#summary
+summary(g)
+
+## Community Detection
+
+#Degree centrality
+V(g)$degree <- degree(g)
+
+#Betweenness Centrality
+V(g)$betweenness <-betweenness(g)
+
+#PageRank
+V(g)$pagerank <- page.rank(g)$vector
+
+#Display top 10 most connected artists
+top_artists <- V(g) [order(-V(g)$degree)] [1:10]
+data.frame (name = names (top_artists), 
+degree = V(g)$degree[top_artists])
+
+#Louvain Clustering
+clusters <- cluster_louvain(g)
+V(g)$community <- clusters$membership
+
+# Number of communitiies
+length (unique(V(g)$community))
+
+## Visualize the Network
+
+#Sample subgraph for plotting
+set.seed (42)
+subgraph_nodes <- sample(V(g), 500)
+g_sub <- induced_subgraph(g, subgraph_nodes)
+
+# Convert to tidygraph for ggraph
+tg <- as_tbl_graph(g_sub)
+
+#plot
+ggraph (tg, layout = "fr) +
+geom_edge_link (alpha = 0.2) +
+geom_node_point(aes(
+size = degree, 
+color = as.factor(community))) +
+theme_void()
+))
