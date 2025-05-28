@@ -357,56 +357,58 @@ display: none;
 </div>
 
 
-<p>#Load libraries</p>
-<p>library(igraph) library(tidyverse) library(ggraph)
-library(tidygraph)</p>
-<p>#Load and clean the data</p>
-<p>df &lt;- read_csv(“edges.csv”) glimpse (df)</p>
-<p>df_clean &lt;- df %&gt;% filter(!is.na(artis_name),
-!is.na(collaborator_name))</p>
-<p>head(df_clean)</p>
-<p>#Build the Network Graph</p>
-<div id="create-edge-list" class="section level1">
-<h1>Create edge list</h1>
-<p>edges &lt;- df_clean %&gt;% select(from = artist_name, to =
-collaborator_name)</p>
+<div id="load-required-libraries" class="section level1">
+<h1>Load required libraries</h1>
+<p>library(tidyverse) library(igraph) library(tidygraph)
+library(ggraph)</p>
 </div>
-<div id="create-graph" class="section level1">
-<h1>Create graph</h1>
-<p>g &lt;- graph_from_data_frame(edges, directed = FALSE)</p>
+<div id="step-1-read-the-data" class="section level1">
+<h1>Step 1: Read the data</h1>
+<p>edges &lt;- read_csv(“edges.csv”) # Columns: id_0, id_1 nodes &lt;-
+read_csv(“nodes.csv”) # Columns: spotify_id, name, followers, etc.</p>
 </div>
-<div id="simplify-to-remove-loops-and-multiple-edges" class="section level1">
-<h1>Simplify to remove loops and multiple edges</h1>
-<p>g &lt;- simplify(g)</p>
-<p>#summary summary(g)</p>
-<div id="community-detection" class="section level2">
-<h2>Community Detection</h2>
-<p>#Degree centrality V(g)$degree &lt;- degree(g)</p>
-<p>#Betweenness Centrality V(g)$betweenness &lt;-betweenness(g)</p>
-<p>#PageRank V(g)<span class="math inline">\(pagerank &lt;-
-page.rank(g)\)</span>vector</p>
-<p>#Display top 10 most connected artists top_artists &lt;- V(g)
-[order(-V(g)<span class="math inline">\(degree)] [1:10]
-data.frame (name = names (top_artists),
-degree = V(g)\)</span>degree[top_artists])</p>
-<p>#Louvain Clustering clusters &lt;- cluster_louvain(g) V(g)<span class="math inline">\(community &lt;- clusters\)</span>membership</p>
+<div id="step-2-make-sure-node-ids-match" class="section level1">
+<h1>Step 2: Make sure node IDs match</h1>
+<p>nodes &lt;- nodes %&gt;% rename(id = spotify_id) %&gt;% distinct(id,
+.keep_all = TRUE)</p>
+<p>valid_ids &lt;- nodes$id</p>
+<p>edges_filtered &lt;- edges %&gt;% filter (id_0 %in% valid_ids &amp;
+id_1 %in% valid_ids)</p>
 </div>
+<div id="step-3-create-graph-from-edge-list-and-join-with-node-data" class="section level1">
+<h1>Step 3: Create graph from edge list and join with node data</h1>
+<p>g &lt;- graph_from_data_frame(d = edges_filtered, vertices = nodes,
+directed = FALSE)</p>
 </div>
-<div id="number-of-communitiies" class="section level1">
-<h1>Number of communitiies</h1>
-<p>length (unique(V(g)$community))</p>
-<div id="visualize-the-network" class="section level2">
-<h2>Visualize the Network</h2>
-<p>#Sample subgraph for plotting set.seed (42) subgraph_nodes &lt;-
-sample(V(g), 500) g_sub &lt;- induced_subgraph(g, subgraph_nodes)</p>
+<div id="step-4-basic-network-metrics" class="section level1">
+<h1>Step 4: Basic network metrics</h1>
+<p>V(g)<span class="math inline">\(degree &lt;- degree(g)
+V(g)\)</span>betweenness &lt;- betweenness(g) V(g)<span class="math inline">\(pagerank &lt;- page.rank(g)\)</span>vector</p>
 </div>
+<div id="step-5-community-detection-using-louvain-algorithm" class="section level1">
+<h1>Step 5: Community detection using Louvain algorithm</h1>
+<p>louvain_clusters &lt;- cluster_louvain(g) V(g)<span class="math inline">\(community &lt;-
+louvain_clusters\)</span>membership</p>
 </div>
-<div id="convert-to-tidygraph-for-ggraph" class="section level1">
-<h1>Convert to tidygraph for ggraph</h1>
-<p>tg &lt;- as_tbl_graph(g_sub)</p>
-<p>#plot ggraph (tg, layout = “fr) + geom_edge_link (alpha = 0.2) +
-geom_node_point(aes( size = degree, color = as.factor(community))) +
-theme_void() ))</p>
+<div id="step-6-top-artists-by-centrality" class="section level1">
+<h1>Step 6: Top artists by centrality</h1>
+<p>top_artists &lt;- V(g)[order(-V(g)<span class="math inline">\(degree)][1:10]
+top_artists_info &lt;- data.frame(
+  name = V(g)\)</span>name[top_artists], degree = V(g)<span class="math inline">\(degree[top_artists],
+  popularity = V(g)\)</span>popularity[top_artists], followers =
+V(g)$followers[top_artists] ) print(top_artists_info)</p>
+</div>
+<div id="step-7-optional-visualization-sampled-to-avoid-overload" class="section level1">
+<h1>Step 7: Optional Visualization (sampled to avoid overload)</h1>
+<p>set.seed(42) sample_nodes &lt;- sample(V(g), 500) g_sub &lt;-
+induced_subgraph(g, sample_nodes) tg &lt;- as_tbl_graph(g_sub)</p>
+</div>
+<div id="visualization" class="section level1">
+<h1>Visualization</h1>
+<p>ggraph(tg, layout = “fr”) + geom_edge_link(alpha = 0.1) +
+geom_node_point(aes(color = as.factor(community), size = degree)) +
+geom_node_text(aes(label = name), size = 2, repel = TRUE) + theme_void()
++ labs(title = “Spotify Artist Collaboration Network (Sample)”)</p>
 </div>
 
 
