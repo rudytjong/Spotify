@@ -5,12 +5,14 @@ date: "2025-05-28"
 output: html_document
 ---
 
-# Load required libraries
+```{r library, include = FALSE}
 library(tidyverse)
 library(igraph)
 library(tidygraph)
 library(ggraph)
+```
 
+```{r}
 # Step 1: Read the data
 edges <- read_csv("edges.csv")   # Columns: id_0, id_1
 nodes <- read_csv("nodes.csv")   # Columns: spotify_id, name, followers, etc.
@@ -60,7 +62,7 @@ ggraph(tg, layout = "fr") +
   geom_node_text(aes(label = name), size = 2, repel = TRUE) +
   theme_void() +
   labs(title = "Spotify Artist Collaboration Network (Sample)")
-
+```
 
 
 
