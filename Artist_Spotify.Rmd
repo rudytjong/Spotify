@@ -3,59 +3,101 @@ title: "Artist Collaboration Network Analysis"
 author: "Brandon Emery & Rudy Tjong"
 date: "2025-05-28"
 output: html_document
+toc: yes
+toc_depth: '3'
+fig_caption: true
 ---
 
-```{r library, include = FALSE}
+# Summary
+In this project, edges represent collaborations—specifically when artists are featured together on a song—while nodes (or vertices) represent individual artists. The data set includes information on approximately 20,000 primary artists whose songs appeared on the Spotify weekly charts, along with around 136,000 additional artists who were featured on songs with at least one charting artist.
+
+The dataset also captures the frequency and structure of these collaborations, allowing us to generate a large-scale network comprising over 135,000 artists as nodes and more than 300,000 edges representing collaborative links between them.
+
+**Data Sources**:
+-Aggregated weekly Spotify chart data was collected from [Kworb](https://kworb.net/spotify/)
+-Artist and feature data were scraped from the Spotify API.
+
+**Temporal Coverage**:
+-Start Date: September 28, 2013
+-End Date: October 9, 2022
+
+# Load required libraries
+```{r setup, include = FALSE}
 library(tidyverse)
 library(igraph)
 library(tidygraph)
 library(ggraph)
 ```
 
-```{r}
 # Step 1: Read the data
-edges <- read_csv("edges.csv")   # Columns: id_0, id_1
-nodes <- read_csv("nodes.csv")   # Columns: spotify_id, name, followers, etc.
+
+```{r load data, message= FALSE, error = FALSE}
+e <- read.csv("edges.csv", header = TRUE, stringsAsFactors = FALSE)
+n <- read.csv("nodes.csv", header = TRUE, stringsAsFactors = FALSE)
+
+head(e)
+head(n)
+```
 
 # Step 2: Make sure node IDs match
-nodes <- nodes %>%
+```{r match nodes, message= FALSE, error=FALSE}
+n <- n %>%
   rename(id = spotify_id) %>%
   distinct(id, .keep_all = TRUE)
-  
-valid_ids <- nodes$id
 
-edges_filtered <- edges %>%
-filter (id_0 %in% valid_ids & id_1 %in% valid_ids)
+valid_ids <- n$id
+
+edges_filtered <- e %>%
+  filter(id_0 %in% valid_ids & id_1 %in% valid_ids)
+```
 
 # Step 3: Create graph from edge list and join with node data
-g <- graph_from_data_frame(d = edges_filtered, vertices = nodes, directed = FALSE)
+```{r graph, message=FALSE, error=FALSE}
+g <- graph_from_data_frame(d = edges_filtered, vertices = n, directed = FALSE)
+
+plot(g,
+     edge.arrow.size = .4,
+     edge.arrow.color = "lightgray",
+     vertex.color = "black", 
+     vertex.label = NA, 
+     vertex.size = 7)
+```
 
 # Step 4: Basic network metrics
+```{r network, message = FALSE, error = FALSE}
 V(g)$degree <- degree(g)
 V(g)$betweenness <- betweenness(g)
 V(g)$pagerank <- page.rank(g)$vector
+```
 
 # Step 5: Community detection using Louvain algorithm
+```{r community, message = FALSE, error = FALSE}
 louvain_clusters <- cluster_louvain(g)
 V(g)$community <- louvain_clusters$membership
+```
 
 # Step 6: Top artists by centrality
+```{r centrality, message = FALSE, error = FALSE}
 top_artists <- V(g)[order(-V(g)$degree)][1:10]
+
 top_artists_info <- data.frame(
   name = V(g)$name[top_artists],
   degree = V(g)$degree[top_artists],
   popularity = V(g)$popularity[top_artists],
   followers = V(g)$followers[top_artists]
 )
+
 print(top_artists_info)
+```
+
 
 # Step 7: Optional Visualization (sampled to avoid overload)
+```{r visualization, message = FALSE, error = FALSE}
 set.seed(42)
 sample_nodes <- sample(V(g), 500)
 g_sub <- induced_subgraph(g, sample_nodes)
 tg <- as_tbl_graph(g_sub)
 
-# Visualization
 ggraph(tg, layout = "fr") +
   geom_edge_link(alpha = 0.1) +
   geom_node_point(aes(color = as.factor(community), size = degree)) +
@@ -63,6 +105,10 @@ ggraph(tg, layout = "fr") +
   theme_void() +
   labs(title = "Spotify Artist Collaboration Network (Sample)")
 ```
+
+# Conclusion
+
+This analysis highlights the structure and key players in the Spotify artist collaboration network. Using community detection and centrality metrics, we gain insight into how interconnected the music industry is and which artists play central roles in shaping collaboration trends.
 
 
 
