@@ -1,11 +1,12 @@
 ---
 title: "Artist Collaboration Network Analysis"
-author: "Brandon Emery & Rudy Tjong"
+author: "Brandon Emory & Rudy Tjong"
 date: "2025-05-28"
-output: html_document
-toc: yes
-toc_depth: '3'
-fig_caption: true
+output: 
+  html_document:
+    toc: yes
+    toc_depth: 2
+    toc_float: true
 ---
 
 # Summary
@@ -21,8 +22,8 @@ The dataset also captures the frequency and structure of these collaborations, a
 -Start Date: September 28, 2013
 -End Date: October 9, 2022
 
-# Load required libraries
-```{r setup, include = FALSE}
+## Load required libraries
+```{r setup, message = FALSE, error = FALSE}
 library(tidyverse)
 library(igraph)
 library(tidygraph)
@@ -41,33 +42,39 @@ head(n)
 
 # Step 2: Make sure node IDs match
 ```{r match nodes, message= FALSE, error=FALSE}
-n <- n %>%
+n_subset <- n %>%
   rename(id = spotify_id) %>%
-  distinct(id, .keep_all = TRUE)
+  distinct(id, .keep_all = TRUE) %>%
+  slice(1:1000)  #for only first 1000 for faster results
 
-valid_ids <- n$id
+valid_ids <- n_subset$id
 
 edges_filtered <- e %>%
   filter(id_0 %in% valid_ids & id_1 %in% valid_ids)
+
 ```
 
 # Step 3: Create graph from edge list and join with node data
 ```{r graph, message=FALSE, error=FALSE}
-g <- graph_from_data_frame(d = edges_filtered, vertices = n, directed = FALSE)
+g <- graph_from_data_frame(d = edges_filtered, vertices = n_subset, directed = FALSE)
 
 plot(g,
      edge.arrow.size = .4,
-     edge.arrow.color = "lightgray",
-     vertex.color = "black", 
+     edge.arrow.color = "pink",
+     vertex.color = "green", 
      vertex.label = NA, 
      vertex.size = 7)
+
 ```
+
+
+Graph shows us a tight group of popular artist in the center meaning they are some of the biggest names. Most artist here are connected to a few people. A few people however, help link the rest together through lots of collaborations.
 
 # Step 4: Basic network metrics
 ```{r network, message = FALSE, error = FALSE}
 V(g)$degree <- degree(g)
 V(g)$betweenness <- betweenness(g)
-V(g)$pagerank <- page.rank(g)$vector
+V(g)$pagerank <- page_rank(g)$vector
 ```
 
 # Step 5: Community detection using Louvain algorithm
@@ -90,21 +97,6 @@ top_artists_info <- data.frame(
 print(top_artists_info)
 ```
 
-
-# Step 7: Optional Visualization (sampled to avoid overload)
-```{r visualization, message = FALSE, error = FALSE}
-set.seed(42)
-sample_nodes <- sample(V(g), 500)
-g_sub <- induced_subgraph(g, sample_nodes)
-tg <- as_tbl_graph(g_sub)
-
-ggraph(tg, layout = "fr") +
-  geom_edge_link(alpha = 0.1) +
-  geom_node_point(aes(color = as.factor(community), size = degree)) +
-  geom_node_text(aes(label = name), size = 2, repel = TRUE) +
-  theme_void() +
-  labs(title = "Spotify Artist Collaboration Network (Sample)")
-```
 
 # Conclusion
 
