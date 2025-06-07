@@ -75,13 +75,54 @@ Graph shows us a tight group of popular artist in the center meaning they are so
 V(g)$degree <- degree(g)
 V(g)$betweenness <- betweenness(g)
 V(g)$pagerank <- page_rank(g)$vector
+
+top_degree <- V(g)[order(-degree)][1:10]
+top_degree_df <- data.frame(
+  name = V(g)$name[top_degree],
+  degree = V(g)$degree[top_degree]
+)
+print("Top 10 artists by degree:")
+print(top_degree_df)
+
+top_betweenness <- V(g)[order(-betweenness)][1:10]
+top_betweenness_df <- data.frame(
+  name = V(g)$name[top_betweenness],
+  betweenness = V(g)$betweenness[top_betweenness]
+)
+print("Top 10 artists by betweenness:")
+print(top_betweenness_df)
+
+top_pagerank <- V(g)[order(-pagerank)][1:10]
+top_pagerank_df <- data.frame(
+  name = V(g)$name[top_pagerank],
+  pagerank = V(g)$pagerank[top_pagerank]
+)
+print("Top 10 artists by PageRank:")
+print(top_pagerank_df)
 ```
+Top degree artist - _The Him_. The top artist here has worked with the most other artists.
+They are very active in collaborations. 
+Top betweeness artist - _Cardi B_. This artist connects different groups of artists.
+They often work with people who don’t usually work together.
+Top pagerank artist - _Epik High_. This artist is very influential in the network.
+They are connected to other important artists.
+
 
 # Step 5: Community detection using Louvain algorithm
 ```{r community, message = FALSE, error = FALSE}
 louvain_clusters <- cluster_louvain(g)
 V(g)$community <- louvain_clusters$membership
+
+community_df <- data.frame(
+  name = V(g)$name,
+  community = V(g)$community
+)
+print("Sample of artists and their community:")
+print(head(community_df, 10))
 ```
+We used the Louvain algorithm to find communities in the artist network.
+Each community is a group of artists who tend to collaborate with each other more often.
+This helps us see how the music industry is organized into smaller groups or genres, and which artists belong to which group.
 
 # Step 6: Top artists by centrality
 ```{r centrality, message = FALSE, error = FALSE}
@@ -94,8 +135,11 @@ top_artists_info <- data.frame(
   followers = V(g)$followers[top_artists]
 )
 
+
 print(top_artists_info)
 ```
+This table shows the top 10 artists with the most collaborations in the network.
+These artists are highly active and connected in the music industry.
 
 
 # Conclusion
